@@ -1,14 +1,14 @@
+# pylint: disable=missing-function-docstring
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import requests
-from bs4 import BeautifulSoup
 from re import sub
 from decimal import Decimal
 import smtplib
-import time
 import sys
 from datetime import datetime
+from bs4 import BeautifulSoup
+import requests
 
 
 ####### CONFIG ########
@@ -26,6 +26,7 @@ EMAIL_TO =  ""
 DEBUG = False
 #######################
 
+
 def check_price():
     global DEBUG
 
@@ -34,23 +35,21 @@ def check_price():
     soup2 = BeautifulSoup(soup1.prettify(), 'html.parser')
 
     title = soup2.find(id='productTitle').get_text().strip()
-    price = soup2.find(id='priceblock_ourprice').get_text().strip()
-    readable_price = price.replace(" €","")
-    converted_price = Decimal(sub(r'[^\d.]', '', readable_price))
+    price = soup2.find(id='twister-plus-price-data-price').get('value').strip()
 
     now = datetime.now()
 
     if DEBUG:
-        print("[+] Current price : " + str(converted_price/100) + "€" +  " - " + now.strftime("%d/%m/%Y %H:%M:%S"))
+        print("[+] Current price : " + str(price) + "€" +  " - " + now.strftime("%d/%m/%Y %H:%M:%S"))
 
-    if (converted_price < int(PRICE) * 100):
+    if int(price) < int(PRICE):
         if DEBUG:
             print('[+] Sending email')
 
-        send_email()
+        send_email(title, price, URL)
 
 
-def send_email():
+def send_email(title, price, url):
     global DEBUG
 
     server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
@@ -59,8 +58,8 @@ def send_email():
     server.ehlo()
     server.login(SMTP_LOGIN, SMTP_PWD)
 
-    subject = "Amazon : Price reduction for your item !"
-    body = ("The price of the item has just fallen below " + PRICE + "€ -> " + URL)
+    subject = "Amazon : Prix interessant !"
+    body = f"Le \"{title}\" est à {price}€ (URL : {url}) "
     msg = f"Subject: {subject}\n\n{body}"
 
     server.sendmail(EMAIL_FROM, EMAIL_TO, msg.encode("utf8"))
@@ -76,8 +75,9 @@ PRICE = sys.argv[2]
 
 if __name__ == "__main__":
     if DEBUG:
-        print('[+] Analysing url ' + URL)
+        print('[+] Analyzing url ' + URL)
         print('[+] Checking if price is lower than ' + PRICE)
 
     check_price()
+
 
